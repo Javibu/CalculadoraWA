@@ -13,89 +13,101 @@ import android.widget.Toast;
 import android.R;
 
 public class MainActivityWA extends AppCompatActivity {
+    final String[] datos = new String[]{"DOLAR", "EURO", "PESO MEXICANO"};
 
-    final String[] datos = new String[] {"DOLAR","EURO","PESO MEXICANO"};
+    private Spinner monedaActualSP;
+    private Spinner monedaCambioSP;
+    private EditText valorCambioET;
+    private TextView resultadoTV;
 
-    private Spinner MonedaActualSP ;
-    private Spinner MonedaCambioSP;
-    private EditText ValorCambioET;
-    private TextView ResultadoTV;
-
-    final private double FactorDolarEuro= 0.87;
-    final private double FactorPesoDolar= 0.54;
+    final  private double factorDolarEuro = 0.87;
+    final private  double factorPesoDolar = 0.54;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main_activity_w);
 
+        ArrayAdapter<String> adapadador = new ArrayAdapter<String>(this,R.layout.support_simple_spinner_dropdown_item,datos);
 
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,R.layout.support_simple_spinner_dropdown_item,datos);
-         MonedaActualSP = (Spinner) findViewById(R.id.MonedaActualSP);
-        MonedaActualSP.setAdapter(adapter);
-        MonedaCambioSP= (Spinner) findViewById(R.id.MonedaCambioSP);
+        monedaActualSP = (Spinner) findViewById(R.id.MonedaActualSP);
 
-        SharedPreferences Preferencias = getSharedPreferences("Mis Preferencias", Context.MODE_PRIVATE);
-        String  tmpMonedaActual = Preferencias.getString("MonedaActual", "");
-        String  tmpmonedaCambio = Preferencias.getString("MonedaCambio", "");
+        monedaActualSP.setAdapter(adapadador);
+
+        monedaCambioSP = (Spinner) findViewById(R.id.MonedaCambioSP);
+
+        SharedPreferences preferencias = getSharedPreferences("MiPreferencia", Context.MODE_PRIVATE);
+
+        String tmpMonedaActual = preferencias.getString("monedaActual", "");
+        String tmpMonedaCambio = preferencias.getString("monedaCambio","");
+
+        if(tmpMonedaActual.equals("")){
+            int indice = adapadador.getPosition(tmpMonedaActual);
+            monedaActualSP.setSelection(indice);
+        }
+
+        if(tmpMonedaCambio.equals("")){
+            int indice = adapadador.getPosition(tmpMonedaCambio);
+            monedaCambioSP.setSelection(indice);
+        }
     }
 
-    public void ClickConvertir(View v){
-        MonedaActualSP= (Spinner) findViewById(R.id.MonedaActualSP);
-        MonedaCambioSP= (Spinner) findViewById(R.id.MonedaCambioSP);
+    public void clickConvert(View v){
+        monedaActualSP = (Spinner) findViewById(R.id.MonedaActualSP);
+        monedaCambioSP = (Spinner) findViewById(R.id.MonedaCambioSP);
+        valorCambioET = (EditText)findViewById(R.id.ValorCambioET);
+        resultadoTV = (TextView) findViewById(R.id.ResultadoTV);
 
-        ValorCambioET= (EditText) findViewById(R.id.ValorCambioET);
-        ResultadoTV = (TextView) findViewById(R.id.ResulatadoTV);
+        String monedaActual = monedaActualSP.getSelectedItem().toString();
+        String monedaCambio = monedaCambioSP.getSelectedItem().toString();
 
-        String monedaActual = MonedaActualSP.getSelectedItem().toString();
-        String monedaCambio = MonedaCambioSP.getSelectedItem().toString();
+        double valorCambio = Double.parseDouble(valorCambioET.getText().toString());
 
-        double valorCambio= Double.parseDouble(ValorCambioET.getText().toString());
+        double resultado = procesarConversion(monedaActual, monedaCambio, valorCambio);
 
-        double Resultado= ProcesarConversion(monedaActual, monedaCambio, valorCambio);
-            if (Resultado>0){
-                ResultadoTV.setText(String.format("Por 5%.2f %s usted recibirá 5%.2f %s",valorCambio, monedaActual,Resultado,monedaCambio) );
-                ValorCambioET.setText("");
-                SharedPreferences Preferencias = getSharedPreferences("Mis Preferencias", Context.MODE_PRIVATE);
-                SharedPreferences.Editor Editor = Preferencias.edit();
+        if (resultado>0){
+            resultadoTV.setText(String.format("Por %5.2 %s, usted recibira %5.2 %s", valorCambio, monedaActual,resultado,monedaCambio));
+            valorCambioET.setText("");
 
-                Editor.putString("monedaActual",monedaActual);
-                Editor.putString("monedaCambio",monedaCambio);
+            SharedPreferences preferencias = getSharedPreferences("MiPreferencias", Context.MODE_PRIVATE);
+            SharedPreferences.Editor editor = preferencias.edit();
 
-                Editor.commit();
+            editor.putString("monedaActual", monedaActual);
+            editor.putString("monedaCambio", monedaCambio);
 
-            }else{
-                ResultadoTV.setText(String.format("Usted Recibirá"));
-                Toast.makeText(MainActivityWA.this, "Las opciones elejidas no tienen un formato de conversion", Toast.LENGTH_SHORT).show();
-
-
-            };
+            editor.commit();
+        }else
+        {
+            resultadoTV.setText(String.format("Usted Recibira"));
+            Toast.makeText(MainActivityWA.this,"Las opciones elegidas no tiene un factor de conversor", Toast.LENGTH_SHORT).show();
+        }
     }
 
-    private double ProcesarConversion(String monedaActual,String monedaCambio,double valorCambio){
-        double ResultadoConversion= 0;
+    private double procesarConversion(String monedaActual, String monedaCambio, double valorCambio){
+
+        double resultadoConversion = 0;
 
         switch (monedaActual){
+
             case "DOLAR":
-                if(monedaCambio.equals("EURO")){
-                    ResultadoConversion= valorCambio = FactorDolarEuro;
-                }
-                if(monedaCambio.equals("PESO MEXICANO")){
-                    ResultadoConversion= valorCambio * FactorPesoDolar;
-                }
+                if(monedaCambio.equals("EURO"))
+                    resultadoConversion = valorCambio * factorDolarEuro;
+
+                if(monedaCambio.equals("PESO MEXICANO"))
+                    resultadoConversion = valorCambio / factorPesoDolar;
                 break;
+
             case "EURO":
-                if(monedaCambio.equals("DOLAR")){
-                    ResultadoConversion= valorCambio / FactorDolarEuro;
-                }
+                if(monedaCambio.equals("DOLAR"))
+                    resultadoConversion = valorCambio / factorDolarEuro;
                 break;
+
             case "PESO MEXICANO":
-                if(monedaCambio.equals("DOLAR")){
-                    ResultadoConversion= valorCambio * FactorPesoDolar;
-                }
+                if(monedaCambio.equals("DOLAR"))
+                    resultadoConversion = valorCambio * factorDolarEuro;
                 break;
         }
-        return ResultadoConversion ;
 
+        return 0;
     }
 }
